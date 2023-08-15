@@ -1,52 +1,107 @@
-<script setup lang="ts">
-// This starter template is using Vue 3 <script setup> SFCs
-// Check out https://vuejs.org/api/sfc-script-setup.html#script-setup
-import Greet from "./components/Greet.vue";
-</script>
-
 <template>
-  <div class="container">
-    <h1>Welcome to Tauri!</h1>
+<div class="fancy-upload">
+    <form @submit.prevent="uploadImage">
+      <label class="custom-file-upload">
+        <input type="file" accept="image/*" @change="handleFileChange">
+        <span>Select an Image</span>
+      </label>
+      <button type="submit" class="upload-button">Upload Image</button>
+    </form>
 
-    <div class="row">
-      <a href="https://vitejs.dev" target="_blank">
-        <img src="/vite.svg" class="logo vite" alt="Vite logo" />
-      </a>
-      <a href="https://tauri.app" target="_blank">
-        <img src="/tauri.svg" class="logo tauri" alt="Tauri logo" />
-      </a>
-      <a href="https://vuejs.org/" target="_blank">
-        <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-      </a>
+    <div v-if="imageUplaoded">
+      <img :src="imageURL" alt="Uploaded Image" class="uploaded-image" />
     </div>
-
-    <p>Click on the Tauri, Vite, and Vue logos to learn more.</p>
-
-    <p>
-      Recommended IDE setup:
-      <a href="https://code.visualstudio.com/" target="_blank">VS Code</a>
-      +
-      <a href="https://github.com/johnsoncodehk/volar" target="_blank">Volar</a>
-      +
-      <a href="https://github.com/tauri-apps/tauri-vscode" target="_blank"
-        >Tauri</a
-      >
-      +
-      <a href="https://github.com/rust-lang/rust-analyzer" target="_blank"
-        >rust-analyzer</a
-      >
-    </p>
-
-    <Greet />
   </div>
 </template>
 
+<script lang="ts">
+export default {
+  data() {
+    return {
+      selectedFile: null,
+      imageUplaoded: false,
+      imageURL: ''
+    };
+  },
+  methods: {
+    handleFileChange(event: any) {
+      this.selectedFile = event.target.files[0];
+    },
+    async uploadImage() {
+      if (this.selectedFile) {
+        const formData = new FormData();
+        formData.append('image', this.selectedFile);
+        // try {
+        //   const response = await fetch('', {
+        //     method: 'POST',
+        //     body: formData,
+        //   });
+        //   if (response.ok) {
+        //     console.log("Image uploaded successfully");
+        //   }
+        //   else {
+        //     console.log("Image upload failed");
+        //   }
+        // } catch (error) {
+        //   console.log("Error uploading image: " ,error);
+        // }
+        console.log(this.selectedFile);
+        this.imageURL = URL.createObjectURL(this.selectedFile);
+        this.imageUplaoded = true;
+      }
+    },
+  },
+};
+</script>
+
 <style scoped>
-.logo.vite:hover {
-  filter: drop-shadow(0 0 2em #747bff);
+.fancy-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
 }
 
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #249b73);
+.custom-file-upload {
+  display: inline-block;
+  background-color: turquoise;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.custom-file-upload:hover {
+  background-color: #e0e0e0;
+}
+
+.custom-file-upload input[type="file"] {
+  display: none;
+}
+
+.upload-button {
+  margin-top: 10px;
+  padding: 10px 20px;
+  background-color: #007bff;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.upload-button:hover {
+  background-color: #0056b3;
+}
+
+.uploaded-image {
+  margin-top: 20px;
+  max-width: 50%;
+  height: auto;
+  display: block;
+  margin: 20px auto;
 }
 </style>
