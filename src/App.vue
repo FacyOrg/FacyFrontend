@@ -1,5 +1,7 @@
 <template>
-<div class="fancy-upload">
+<div class="app-container">
+  <h1>Facy</h1>
+  <div class="fancy-upload">
     <form @submit.prevent="uploadImage">
       <label class="custom-file-upload">
         <input type="file" accept="image/*" @change="handleFileChange">
@@ -8,53 +10,204 @@
       <button type="submit" class="upload-button">Upload Image</button>
     </form>
 
-    <div v-if="imageUplaoded">
+    <div v-if="imageAdded">
       <img :src="imageURL" alt="Uploaded Image" class="uploaded-image" />
     </div>
+
+    <div class="fancy-progress-bar" v-if="gotResponse && imageUploaded">
+      <div>
+        <label for="progress">Age</label><br>
+        <progress id="progress" :value="progressValues[0]" max="100"></progress>
+        <div class="progress-value">{{ progressValues[0] }}%</div>
+
+        <label for="progress">Angry</label><br>
+        <progress id="progress" :value="progressValues[1]" max="100"></progress>
+        <div class="progress-value">{{ progressValues[1] }}%</div>
+
+        <label for="progress">Disgust</label><br>
+        <progress id="progress" :value="progressValues[2]" max="100"></progress>
+        <div class="progress-value">{{ progressValues[2] }}%</div>
+
+        <label for="progress">Fear</label><br>
+        <progress id="progress" :value="progressValues[3]" max="100"></progress>
+        <div class="progress-value">{{ progressValues[3] }}%</div>
+      </div>
+
+      <div>
+        <label for="progress">Happy</label><br>
+        <progress id="progress" :value="progressValues[4]" max="100"></progress>
+        <div class="progress-value">{{ progressValues[4] }}%</div>
+
+        <label for="progress">Neutral</label><br>
+        <progress id="progress" :value="progressValues[5]" max="100"></progress>
+        <div class="progress-value">{{ progressValues[5] }}%</div>
+
+        <label for="progress">Sad</label><br>
+        <progress id="progress" :value="progressValues[6]" max="100"></progress>
+        <div class="progress-value">{{ progressValues[6] }}%</div>
+
+        <label for="progress">Surprise</label><br>
+        <progress id="progress" :value="progressValues[7]" max="100"></progress>
+        <div class="progress-value">{{ progressValues[7] }}%</div>
+      </div>
+    </div>
+
+    <div class="loading-spinner" v-else-if="loading">
+      <h2>Analysing...</h2>
+      <div class="spinner"></div>
+    </div>
+
   </div>
+</div>
 </template>
 
 <script lang="ts">
+import axios from 'axios';
+
+interface Analysis {
+  age: number,
+  angry: number,
+  disgust: number,
+  fear: number,
+  happy: number,
+  neutral: number,
+  sad: number,
+  surprise: number
+}
+
 export default {
   data() {
-    return {
-      selectedFile: null,
-      imageUplaoded: false,
-      imageURL: ''
+    return {  
+      selectedFile: null as File | null,
+      imageAdded: false,
+      imageUploaded: false,
+      loading: false,
+      imageURL: '',
+      progressValues: [0, 0, 0, 0, 0, 0, 0, 0],
+      gotResponse: false,
+      imageID: 0,
+      data: null as Analysis | null,
     };
   },
   methods: {
     handleFileChange(event: any) {
       this.selectedFile = event.target.files[0];
+      this.imageURL = URL.createObjectURL(event.target.files[0]);
+      this.imageAdded = true;
+      this.imageUploaded = false;
     },
     async uploadImage() {
       if (this.selectedFile) {
+        this.imageUploaded = true;
         const formData = new FormData();
         formData.append('image', this.selectedFile);
-        // try {
-        //   const response = await fetch('', {
-        //     method: 'POST',
-        //     body: formData,
-        //   });
-        //   if (response.ok) {
-        //     console.log("Image uploaded successfully");
-        //   }
-        //   else {
-        //     console.log("Image upload failed");
-        //   }
-        // } catch (error) {
-        //   console.log("Error uploading image: " ,error);
-        // }
+        
+        axios.post('http://172.20.50.5/api/sentiment_analysis_image', formData, 
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          },
+        })
+        .then(async res => {
+          console.log(res.data);
+          this.loading = true;
+          this.imageID = res.data['task_id'];
+          let status = false;
+          while (status == false) {
+            axios.get('http://172.20.50.5/api/get_data_from_image_process/task_id=${this.imageID}')
+              .then((res) => {
+                  if (res.data['status'] == true){
+                    this.data = res.data['data'];
+                    status = true;
+                    this.loading = false;
+                  }
+              });
+              await this.sleep(1000 * 30);
+            }})
+        .catch(err => {
+          console.log(err);
+        });
         console.log(this.selectedFile);
-        this.imageURL = URL.createObjectURL(this.selectedFile);
-        this.imageUplaoded = true;
+        this.gotResponse = true;
+        this.startProgress();
       }
     },
+    startProgress() {
+      this.progressValues = [0, 0, 0, 0, 0, 0, 0, 0];
+      //if (this.data != null) {
+        const intervalForAge = setInterval(() => {
+          if (this.progressValues[0] < 80) {
+            this.progressValues[0]++;
+          } else {
+            clearInterval(intervalForAge);
+          }
+        }, 20);
+        const intervalForAngry = setInterval(() => {
+          if (this.progressValues[1] < 80) {
+            this.progressValues[1]++;
+          } else {
+            clearInterval(intervalForAngry);
+          }
+        }, 20);
+        const intervalForDisgust = setInterval(() => {
+          if (this.progressValues[2] < 80) {
+            this.progressValues[2]++;
+          } else {
+            clearInterval(intervalForDisgust);
+          }
+        }, 20);
+        const intervalForFear = setInterval(() => {
+          if (this.progressValues[3] < 80) {
+            this.progressValues[3]++;
+          } else {
+            clearInterval(intervalForFear);
+          }
+        }, 20);
+        const intervalForHappy = setInterval(() => {
+          if (this.progressValues[4] < 80) {
+            this.progressValues[4]++;
+          } else {
+            clearInterval(intervalForHappy);
+          }
+        }, 20);
+        const intervalForNeutral = setInterval(() => {
+          if (this.progressValues[5] < 80) {
+            this.progressValues[5]++;
+          } else {
+            clearInterval(intervalForNeutral);
+          }
+        }, 20);
+        const intervalForSad = setInterval(() => {
+          if (this.progressValues[6] < 80) {
+            this.progressValues[6]++;
+          } else {
+            clearInterval(intervalForSad);
+          }
+        }, 20);
+        const intervalForSurprise = setInterval(() => {
+          if (this.progressValues[7] < 80) {
+            this.progressValues[7]++;
+          } else {
+            clearInterval(intervalForSurprise);
+          }
+        }, 20);
+      //}
+    },
+    sleep(ms: number): Promise<void> {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
   },
 };
 </script>
 
 <style scoped>
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+
 .fancy-upload {
   display: flex;
   flex-direction: column;
@@ -103,5 +256,60 @@ export default {
   height: auto;
   display: block;
   margin: 20px auto;
+}
+
+.fancy-progress-bar {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+#progress {
+  width: 200px;
+  height: 5%;
+  border: none;
+  border-radius: 15px;
+  background-color: #f3f3f3;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+  align-items: center;
+}
+
+#progress::-webkit-progress-bar {
+  background-color: #f3f3f3;
+  border-radius: 10px;
+}
+
+#progress::-webkit-progress-value {
+  background-color: blue;
+  border-radius: 10px;
+}
+
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 20%; 
+}
+
+.spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-top: 4px solid black; /* Loading spinner color */
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.progress-value {
+  margin-left: 5px;
+  font-weight: bold;
+  color: blue;
+  animation: bounce 0.5s infinite alternate;
 }
 </style>
