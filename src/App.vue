@@ -18,7 +18,7 @@
       <div>
         <label for="progress">Age</label><br>
         <progress id="progress" :value="progressValues[0]" max="100"></progress>
-        <div class="progress-value">{{ progressValues[0] }}%</div>
+        <div class="progress-value">{{ progressValues[0] }}</div>
 
         <label for="progress">Angry</label><br>
         <progress id="progress" :value="progressValues[1]" max="100"></progress>
@@ -85,7 +85,7 @@ export default {
       imageURL: '',
       progressValues: [0, 0, 0, 0, 0, 0, 0, 0],
       gotResponse: false,
-      imageID: 0,
+      imageID: '',
       data: null as Analysis | null,
     };
   },
@@ -96,7 +96,7 @@ export default {
       this.imageAdded = true;
       this.imageUploaded = false;
     },
-    async uploadImage() {
+    uploadImage() {
       if (this.selectedFile) {
         this.imageUploaded = true;
         const formData = new FormData();
@@ -113,85 +113,90 @@ export default {
           this.loading = true;
           this.imageID = res.data['task_id'];
           let status = false;
+          const apiString = 'http://172.20.50.5/api/get_data_from_image_process?task_id=' + this.imageID; 
           while (status == false) {
-            axios.get('http://172.20.50.5/api/get_data_from_image_process/task_id=${this.imageID}')
+            axios.get(apiString)
               .then((res) => {
                   if (res.data['status'] == true){
                     this.data = res.data['data'];
+                    console.log(this.data?.age);
                     status = true;
                     this.loading = false;
+                    this.gotResponse = true;
                   }
+              })
+              .catch(() => {
+                status = false;
               });
-              await this.sleep(1000 * 30);
+              await this.sleep(1000 * 2);
             }})
         .catch(err => {
           console.log(err);
         });
         console.log(this.selectedFile);
-        this.gotResponse = true;
         this.startProgress();
       }
     },
     startProgress() {
       this.progressValues = [0, 0, 0, 0, 0, 0, 0, 0];
-      //if (this.data != null) {
+      if (this.data != null) {
         const intervalForAge = setInterval(() => {
-          if (this.progressValues[0] < 80) {
+          if (this.progressValues[0] < this.data.age) {
             this.progressValues[0]++;
           } else {
             clearInterval(intervalForAge);
           }
         }, 20);
         const intervalForAngry = setInterval(() => {
-          if (this.progressValues[1] < 80) {
+          if (this.progressValues[1] < this.data.angry) {
             this.progressValues[1]++;
           } else {
             clearInterval(intervalForAngry);
           }
         }, 20);
         const intervalForDisgust = setInterval(() => {
-          if (this.progressValues[2] < 80) {
+          if (this.progressValues[2] < this.data.disgust) {
             this.progressValues[2]++;
           } else {
             clearInterval(intervalForDisgust);
           }
         }, 20);
         const intervalForFear = setInterval(() => {
-          if (this.progressValues[3] < 80) {
+          if (this.progressValues[3] < this.data.fear) {
             this.progressValues[3]++;
           } else {
             clearInterval(intervalForFear);
           }
         }, 20);
         const intervalForHappy = setInterval(() => {
-          if (this.progressValues[4] < 80) {
+          if (this.progressValues[4] < this.data.happy) {
             this.progressValues[4]++;
           } else {
             clearInterval(intervalForHappy);
           }
         }, 20);
         const intervalForNeutral = setInterval(() => {
-          if (this.progressValues[5] < 80) {
+          if (this.progressValues[5] < this.data.neutral) {
             this.progressValues[5]++;
           } else {
             clearInterval(intervalForNeutral);
           }
         }, 20);
         const intervalForSad = setInterval(() => {
-          if (this.progressValues[6] < 80) {
+          if (this.progressValues[6] < this.data.sad) {
             this.progressValues[6]++;
           } else {
             clearInterval(intervalForSad);
           }
         }, 20);
         const intervalForSurprise = setInterval(() => {
-          if (this.progressValues[7] < 80) {
+          if (this.progressValues[7] < this.data.surprise) {
             this.progressValues[7]++;
           } else {
             clearInterval(intervalForSurprise);
           }
         }, 20);
-      //}
+      }
     },
     sleep(ms: number): Promise<void> {
       return new Promise(resolve => setTimeout(resolve, ms));
@@ -205,7 +210,6 @@ export default {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  overflow: auto;
 }
 
 .fancy-upload {
