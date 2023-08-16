@@ -4,10 +4,10 @@
   <div class="fancy-upload">
     <form @submit.prevent="uploadImage">
       <label class="custom-file-upload">
-        <input type="file" accept="image/*" @change="handleFileChange">
+        <input type="file" accept="image/jpeg" @change="handleFileChange">
         <span>Select an Image</span>
       </label>
-      <button type="submit" class="upload-button">Upload Image</button>
+      <button type="submit" class="upload-button" :disabled="isImageValid">Upload Image</button>
     </form>
 
     <div v-if="imageAdded">
@@ -79,6 +79,7 @@ export default {
   data() {
     return {  
       selectedFile: null as File | null,
+      isImageValid: false,
       imageAdded: false,
       imageUploaded: false,
       loading: false,
@@ -95,6 +96,7 @@ export default {
       this.imageURL = URL.createObjectURL(event.target.files[0]);
       this.imageAdded = true;
       this.imageUploaded = false;
+      this.validateImage();
     },
     uploadImage() {
       if (this.selectedFile) {
@@ -102,37 +104,36 @@ export default {
         const formData = new FormData();
         formData.append('image', this.selectedFile);
         
-        axios.post('http://172.20.50.5/api/sentiment_analysis_image', formData, 
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          },
-        })
-        .then(async res => {
-          console.log(res.data);
-          this.loading = true;
-          this.imageID = res.data['task_id'];
-          let status = false;
-          const apiString = 'http://172.20.50.5/api/get_data_from_image_process?task_id=' + this.imageID; 
-          while (status == false) {
-            axios.get(apiString)
-              .then((res) => {
-                  if (res.data['status'] == true){
-                    this.data = res.data['data'];
-                    console.log(this.data?.age);
-                    status = true;
-                    this.loading = false;
-                    this.gotResponse = true;
-                  }
-              })
-              .catch(() => {
-                status = false;
-              });
-              await this.sleep(1000 * 2);
-            }})
-        .catch(err => {
-          console.log(err);
-        });
+        // axios.post('http://172.20.50.5/api/sentiment_analysis_image', formData, 
+        // {
+        //   headers: {
+        //     'Content-Type': 'multipart/form-data'
+        //   },
+        // })
+        // .then(async res => {
+        //   console.log(res.data);
+        //   this.loading = true;
+        //   this.imageID = res.data['task_id'];
+        //   let status = false;
+        //   const apiString = 'http://172.20.50.5/api/get_data_from_image_process?task_id=' + this.imageID; 
+        //   while (status == false) {
+        //     axios.get(apiString)
+        //       .then((res) => {
+        //           if (res.data['status'] == true){
+        //             this.data = res.data['data'];
+        //             status = true;
+        //             this.loading = false;
+        //             this.gotResponse = true;
+        //           }
+        //       })
+        //       .catch(() => {
+        //         status = true;
+        //       });
+        //       await this.sleep(1000 * 2);
+        //     }})
+        // .catch(err => {
+        //   console.log(err);
+        // });
         console.log(this.selectedFile);
         this.startProgress();
       }
@@ -198,6 +199,25 @@ export default {
         }, 20);
       }
     },
+    validateImage() {
+      if (!this.selectedFile) {
+        this.isImageValid = false;
+        return;
+      }
+      const image = new Image();
+      image.src = this.imageURL;
+
+      image.onload = () => {
+        const maxWidth = 800; // Set your desired max width
+        const maxHeight = 800; // Set your desired max height
+
+        if (image.width <= maxWidth && image.height <= maxHeight) {
+          this.isImageValid = true;
+        } else {
+          this.isImageValid = false;
+        }
+      };
+    },
     sleep(ms: number): Promise<void> {
       return new Promise(resolve => setTimeout(resolve, ms));
     }
@@ -254,12 +274,10 @@ export default {
   background-color: #0056b3;
 }
 
-.uploaded-image {
-  margin-top: 20px;
-  max-width: 50%;
-  height: auto;
-  display: block;
-  margin: 20px auto;
+@media (max-width: 768px) {
+  .uploaded-image {
+    width: 20%;
+  }
 }
 
 .fancy-progress-bar {
