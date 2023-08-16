@@ -7,11 +7,15 @@
         <input type="file" accept="image/jpeg" @change="handleFileChange">
         <span>Select an Image</span>
       </label>
-      <button type="submit" class="upload-button" :disabled="isImageValid">Upload Image</button>
+      <button type="submit" class="upload-button" :disabled="isImageValid == false">Upload Image</button>
     </form>
 
-    <div v-if="imageAdded">
+    <div v-if="imageAdded && isImageValid">
       <img :src="imageURL" alt="Uploaded Image" class="uploaded-image" />
+    </div>
+
+    <div v-else-if="imageAdded">
+      <h2>Image size too big</h2>
     </div>
 
     <div class="fancy-progress-bar" v-if="gotResponse && imageUploaded">
@@ -98,48 +102,53 @@ export default {
       this.imageUploaded = false;
       this.validateImage();
     },
-    uploadImage() {
+    async uploadImage() {
+      console.log('uploading image');
       if (this.selectedFile) {
         this.imageUploaded = true;
+        this.gotResponse = false;
         const formData = new FormData();
         formData.append('image', this.selectedFile);
         
-        // axios.post('http://172.20.50.5/api/sentiment_analysis_image', formData, 
-        // {
-        //   headers: {
-        //     'Content-Type': 'multipart/form-data'
-        //   },
-        // })
-        // .then(async res => {
-        //   console.log(res.data);
-        //   this.loading = true;
-        //   this.imageID = res.data['task_id'];
-        //   let status = false;
-        //   const apiString = 'http://172.20.50.5/api/get_data_from_image_process?task_id=' + this.imageID; 
-        //   while (status == false) {
-        //     axios.get(apiString)
-        //       .then((res) => {
-        //           if (res.data['status'] == true){
-        //             this.data = res.data['data'];
-        //             status = true;
-        //             this.loading = false;
-        //             this.gotResponse = true;
-        //           }
-        //       })
-        //       .catch(() => {
-        //         status = true;
-        //       });
-        //       await this.sleep(1000 * 2);
-        //     }})
-        // .catch(err => {
-        //   console.log(err);
-        // });
-        console.log(this.selectedFile);
-        this.startProgress();
+        axios.post('http://172.20.50.5/api/sentiment_analysis_image', formData, 
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          },
+        })
+        .then(async res => {
+          console.log(res.data);
+          this.loading = true;
+          this.imageID = res.data['task_id'];
+          let status = false;
+          const apiString = 'http://172.20.50.5/api/get_data_from_image_process?task_id=' + this.imageID; 
+          while (status == false) {
+            axios.get(apiString)
+              .then((res) => {
+                  if (res.data['status'] == true){
+                    this.data = res.data['data'];
+                    console.log('data is', this.data);
+                    status = true;
+                    this.loading = false;
+                    this.gotResponse = true;
+                    console.log('got here after first get request, data is', this.data);
+                    console.log(this.selectedFile);
+                    this.startProgress();
+                  }
+              })
+              .catch((err) => {
+                console.log(err);
+              });
+              await this.sleep(1000 * 2);
+            }})
+        .catch(err => {
+          console.log(err);
+        });
       }
     },
     startProgress() {
       this.progressValues = [0, 0, 0, 0, 0, 0, 0, 0];
+      console.log('data in startProgress', this.data);
       if (this.data != null) {
         const intervalForAge = setInterval(() => {
           if (this.progressValues[0] < this.data.age) {
@@ -208,12 +217,14 @@ export default {
       image.src = this.imageURL;
 
       image.onload = () => {
-        const maxWidth = 800; // Set your desired max width
-        const maxHeight = 800; // Set your desired max height
+        const maxWidth = 400;
+        const maxHeight = 400;
 
         if (image.width <= maxWidth && image.height <= maxHeight) {
+          console.log('Image has correct dimensions');
           this.isImageValid = true;
         } else {
+          console.log('Image has incorrect dimensions');
           this.isImageValid = false;
         }
       };
@@ -230,6 +241,7 @@ export default {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: auto;
 }
 
 .fancy-upload {
@@ -276,7 +288,7 @@ export default {
 
 @media (max-width: 768px) {
   .uploaded-image {
-    width: 20%;
+    width: 200%;
   }
 }
 
